@@ -1,0 +1,17 @@
+# Variables de entorno (NUNCA subir credenciales)
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+iqbot-core/model.pkl
+
+# Node / Frontend
+node_modules/
+dist/
+
+# Sistema
+.DS_Store

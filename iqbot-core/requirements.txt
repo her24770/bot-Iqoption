@@ -1,0 +1,43 @@
+# --- API / Web ---
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+websockets==12.0
+
+# --- Base de datos ---
+SQLAlchemy==2.0.30
+alembic==1.13.1
+psycopg2-binary==2.9.9
+
+# --- Redis ---
+redis==5.0.4
+
+# --- Validación / Config ---
+pydantic==2.7.1
+pydantic-settings==2.2.1
+
+# --- Auth ---
+python-jose[cryptography]==3.3.0
+passlib==1.7.4
+# bcrypt 4.0.1: última versión compatible con passlib 1.7.4 sin el warning
+# "error reading bcrypt version" (4.1+ eliminó el atributo __about__).
+bcrypt==4.0.1
+
+# --- Datos / Indicadores / ML ---
+# Los indicadores (RSI, EMA, Bollinger) se calculan con pandas/numpy puro.
+# (pandas-ta dejó de ser instalable en Python 3.11, por eso no se usa.)
+numpy==1.26.4
+pandas==2.1.4
+scikit-learn==1.4.2
+xgboost==2.0.3
+yfinance==0.2.40
+
+# --- IA ---
+openai==1.30.1
+
+# --- Scheduler ---
+APScheduler==3.10.4
+
+# Nota: iqoptionapi (no oficial) se instala por separado en el Dockerfile
+# permitiendo que falle, para no romper el build. Si no está disponible,
+# el bot funciona en modo SIMULACIÓN automáticamente.

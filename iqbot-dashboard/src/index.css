@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-base text-gray-100;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}

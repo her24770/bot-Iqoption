@@ -1,0 +1,64 @@
+services:
+
+  iqbot-core:
+    build: ./iqbot-core
+    image: iqbot-core:latest
+    container_name: iqbot-core
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      IQOPTION_EMAIL: ${IQOPTION_EMAIL}
+      IQOPTION_PASSWORD: ${IQOPTION_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS}
+      DASHBOARD_EMAIL: ${DASHBOARD_EMAIL}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      APP_ENV: ${APP_ENV}
+      APP_PORT: ${APP_PORT}
+      MODEL_PATH: /app/data/model.pkl
+    volumes:
+      - iqbot_model:/app/data
+    depends_on:
+      - iqbot-db
+      - iqbot-redis
+    restart: unless-stopped
+
+  iqbot-dashboard:
+    build:
+      context: ./iqbot-dashboard
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    image: iqbot-dashboard:latest
+    container_name: iqbot-dashboard
+    ports:
+      - "5173:80"
+    depends_on:
+      - iqbot-core
+    restart: unless-stopped
+
+  iqbot-db:
+    image: postgres:15
+    container_name: iqbot-db
+    environment:
+      POSTGRES_DB: iqbot_db
+      POSTGRES_USER: iqbot
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - iqbot_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  iqbot-redis:
+    image: redis:7-alpine
+    container_name: iqbot-redis
+    restart: unless-stopped
+
+volumes:
+  iqbot_pgdata:
+  iqbot_model:
