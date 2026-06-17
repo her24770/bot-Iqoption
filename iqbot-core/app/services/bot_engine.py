@@ -180,6 +180,12 @@ class BotEngine:
 
             direccion = decision_gpt["decision"]
 
+            # --- Verificar que el mercado esté abierto ---
+            if not self.iq.activo_disponible(par):
+                log_event("INFO", f"Mercado cerrado para {par} en este momento. Esperando apertura.")
+                self._actualizar_estado(estado="activo")
+                return
+
             # --- Monto y anti-detección ---
             balance = self.iq.obtener_balance(cfg["modo"])
             monto = round(balance * cfg["monto_porcentaje_balance"], 2)

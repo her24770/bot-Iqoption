@@ -135,6 +135,18 @@ class IQOptionService:
         return pd.DataFrame(filas, columns=["open", "high", "low", "close", "volume"])
 
     # ------------------------------------------------------------- ejecución
+    def activo_disponible(self, par: str) -> bool:
+        """Verifica si el activo está abierto para operar en este momento."""
+        if self.simulation or not self.api:
+            return True
+        try:
+            tiempos = self.api.get_all_open_time()
+            turbo = tiempos.get("turbo", {}).get(par, {})
+            binaria = tiempos.get("binary", {}).get(par, {})
+            return turbo.get("open", False) or binaria.get("open", False)
+        except Exception:
+            return True  # ante la duda, intentar
+
     def ejecutar(self, par: str, direccion: str, monto: float, modo: str, duracion: int = 5):
         """Ejecuta la operación. Devuelve un identificador de orden (o None si falla/simulación)."""
         if self.simulation:
