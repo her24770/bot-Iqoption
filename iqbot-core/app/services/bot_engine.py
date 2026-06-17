@@ -152,6 +152,7 @@ class BotEngine:
                 return
 
             # --- GPT decisión final ---
+            n_ops = self._total_ops(db)
             win_rate_hist = self._win_rate_historico(db, patron["nombre"])
             contexto = {
                 "par": par,
@@ -167,8 +168,8 @@ class BotEngine:
                 "vol_ratio": round(snap["vol_ratio"], 2),
                 "patrones_activos": ", ".join(p["nombre"] for p in patrones),
                 "score": round(score * 100, 1),
-                "n_ops": self._total_ops(db),
-                "win_rate_historico": win_rate_hist,
+                "n_ops": n_ops,
+                "win_rate_historico": win_rate_hist if n_ops > 0 else "sin historial previo",
                 "direccion_sugerida": patron["direccion"],
             }
             decision_gpt = self.gpt.decidir(contexto)
