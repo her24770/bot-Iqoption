@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import api from '../services/api'
 
-export default function ManualTrade({ par = 'EURUSD' }) {
-  const [cargando, setCargando] = useState(null) // 'CALL' | 'PUT' | null
+const PARES_MANUAL = ['EURUSD', 'EURUSD-OTC', 'GBPUSD', 'GBPUSD-OTC', 'USDJPY-OTC']
+
+export default function ManualTrade({ par: parProp = 'EURUSD' }) {
+  const [par, setPar] = useState(parProp)
+  const [cargando, setCargando] = useState(null)
   const [resultado, setResultado] = useState(null)
 
   const operar = async (direccion) => {
@@ -15,13 +18,22 @@ export default function ManualTrade({ par = 'EURUSD' }) {
       setResultado({ ok: false, mensaje: e.response?.data?.detail || 'Error de conexión' })
     } finally {
       setCargando(null)
-      setTimeout(() => setResultado(null), 6000)
+      setTimeout(() => setResultado(null), 8000)
     }
   }
 
   return (
     <div className="rounded-2xl bg-panel p-5">
-      <p className="mb-4 text-sm text-gray-400">Operación manual — {par}</p>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm font-semibold text-white">Operación manual</p>
+        <select
+          value={par}
+          onChange={(e) => setPar(e.target.value)}
+          className="rounded-lg bg-base px-3 py-1 text-sm ring-1 ring-gray-700"
+        >
+          {PARES_MANUAL.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
 
       <div className="flex gap-3">
         <button

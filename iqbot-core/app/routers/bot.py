@@ -65,15 +65,12 @@ def operar_manual(datos: OperarManualIn, db: Session = Depends(get_db)):
     if bot_engine.iq.simulation and not bot_engine.iq.modo_simulacion_forzado:
         return {"ok": False, "mensaje": "Sin conexión real a IQ Option"}
 
-    if not bot_engine.iq.activo_disponible(par):
-        return {"ok": False, "mensaje": f"Mercado cerrado para {par} en este momento"}
-
     balance = bot_engine.iq.obtener_balance(config.modo)
     monto = datos.monto or round(balance * config.monto_porcentaje_balance, 2)
 
     order_id = bot_engine.iq.ejecutar(par, direccion, monto, config.modo, duracion=5)
     if order_id is None and not bot_engine.iq.simulation:
-        return {"ok": False, "mensaje": "IQ Option rechazó la operación"}
+        return {"ok": False, "mensaje": f"IQ Option rechazó la operación en {par}. Prueba con {par}-OTC"}
 
     ahora = datetime.utcnow()
     op = Operacion(
