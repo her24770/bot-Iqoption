@@ -9,6 +9,7 @@ import StatsCards from '../components/StatsCards'
 import RendimientoChart from '../components/RendimientoChart'
 import PatternStats from '../components/PatternStats'
 import ConfigPanel from '../components/ConfigPanel'
+import ManualTrade from '../components/ManualTrade'
 import OperacionesTable from '../components/OperacionesTable'
 import LogsPanel from '../components/LogsPanel'
 
@@ -69,6 +70,9 @@ export default function Dashboard() {
           </div>
           <PatternStats stats={stats} />
         </div>
+
+        {/* Operación manual */}
+        <ManualTrade par={status?.par || 'EURUSD'} />
 
         {/* Configuración */}
         <ConfigPanel />

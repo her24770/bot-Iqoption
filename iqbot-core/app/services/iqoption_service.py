@@ -136,43 +136,73 @@ class IQOptionService:
 
     # ------------------------------------------------------------- ejecución
     def activo_disponible(self, par: str) -> bool:
-        """Verifica si el activo está abierto para operar en este momento."""
+        """Verifica si el activo está abierto para opciones digitales."""
         if self.simulation or not self.api:
             return True
         try:
             tiempos = self.api.get_all_open_time()
+            digital = tiempos.get("digital", {}).get(par, {})
             turbo = tiempos.get("turbo", {}).get(par, {})
             binaria = tiempos.get("binary", {}).get(par, {})
-            return turbo.get("open", False) or binaria.get("open", False)
+            return (
+                digital.get("open", False)
+                or turbo.get("open", False)
+                or binaria.get("open", False)
+            )
         except Exception:
             return True  # ante la duda, intentar
 
     def ejecutar(self, par: str, direccion: str, monto: float, modo: str, duracion: int = 5):
-        """Ejecuta la operación. Devuelve un identificador de orden (o None si falla/simulación)."""
+        """Ejecuta la operación con opciones digitales (mayor disponibilidad horaria).
+        Devuelve un identificador de orden (o None si falla/simulación).
+        """
         if self.simulation:
             if not self.modo_simulacion_forzado:
                 log_event("WARNING", "⚠️  Operación NO enviada a IQ Option (sin conexión real)")
             return None
 
         if self.api:
+            # Intentar primero con opciones digitales (más disponibles)
+            try:
+                ok, order_id = self.api.buy_digital_spot(
+                    par, monto, direccion.lower(), duracion
+                )
+                if ok:
+                    log_event("INFO", f"Orden digital ejecutada (id={order_id})")
+                    return ("digital", order_id)
+                log_event("WARNING", f"Digital rechazado: {order_id}. Intentando turbo...")
+            except Exception as exc:
+                log_event("WARNING", f"Digital no disponible: {exc}. Intentando turbo...")
+
+            # Fallback a turbo/binary
             try:
                 ok, order_id = self.api.buy(monto, par, direccion.lower(), duracion)
                 if ok:
-                    return order_id
-                log_event("ERROR", f"IQ Option rechazó la compra: {order_id}")
+                    log_event("INFO", f"Orden turbo ejecutada (id={order_id})")
+                    return ("turbo", order_id)
+                log_event("ERROR", f"IQ Option rechazó la compra turbo: {order_id}")
             except Exception as exc:
-                log_event("ERROR", f"Error ejecutando operación real: {exc}")
+                log_event("ERROR", f"Error ejecutando operación: {exc}")
         return None
 
     def resultado(self, order_id: Optional[object], modo: str, confianza: float, monto: float):
         """Resuelve el resultado de una operación ya vencida.
 
         Devuelve (resultado, ganancia): ('WIN'|'LOSE', float).
+        order_id puede ser una tupla (tipo, id) o un id simple.
         """
         if not self.simulation and self.api and order_id is not None:
             try:
-                profit = self.api.check_win_v4(order_id)
-                # check_win_v4 devuelve (status, profit) en algunas versiones
+                tipo = "turbo"
+                oid = order_id
+                if isinstance(order_id, tuple):
+                    tipo, oid = order_id
+
+                if tipo == "digital":
+                    profit = self.api.check_win_digital_v2(oid)
+                else:
+                    profit = self.api.check_win_v4(oid)
+
                 if isinstance(profit, (tuple, list)):
                     profit = profit[-1]
                 profit = float(profit)
@@ -180,7 +210,7 @@ class IQOptionService:
                     return "WIN", profit
                 return "LOSE", -monto
             except Exception as exc:
-                log_event("ERROR", f"No se pudo verificar resultado real: {exc}. Resolviendo por simulación")
+                log_event("ERROR", f"No se pudo verificar resultado: {exc}. Resolviendo por simulación")
         # Simulación: probabilidad de ganar ponderada por la confianza del modelo
         prob_win = min(0.85, max(0.40, 0.45 + (confianza - 0.5) * 0.6))
         if random.random() < prob_win:
