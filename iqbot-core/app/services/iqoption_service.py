@@ -5,6 +5,7 @@ hay credenciales válidas, el servicio genera velas, balance y resultados
 sintéticos para que todo el stack funcione localmente sin una cuenta real.
 En el servidor, con credenciales reales, se conecta a IQ Option de verdad.
 """
+import concurrent.futures
 import random
 import time
 from typing import Optional
@@ -164,26 +165,38 @@ class IQOptionService:
         if self.api:
             # Intentar primero con opciones digitales (más disponibles)
             try:
-                ok, order_id = self.api.buy_digital_spot(
-                    par, monto, direccion.lower(), duracion
+                resultado = self._llamar_con_timeout(
+                    self.api.buy_digital_spot, par, monto, direccion.lower(), duracion
                 )
-                if ok:
-                    log_event("INFO", f"Orden digital ejecutada (id={order_id})")
-                    return ("digital", order_id)
-                log_event("WARNING", f"Digital rechazado: {order_id}. Intentando turbo...")
+                if resultado and resultado[0]:
+                    log_event("INFO", f"Orden digital ejecutada (id={resultado[1]})")
+                    return ("digital", resultado[1])
+                log_event("WARNING", f"Digital rechazado: {resultado}. Intentando turbo...")
             except Exception as exc:
                 log_event("WARNING", f"Digital no disponible: {exc}. Intentando turbo...")
 
             # Fallback a turbo/binary
             try:
-                ok, order_id = self.api.buy(monto, par, direccion.lower(), duracion)
-                if ok:
-                    log_event("INFO", f"Orden turbo ejecutada (id={order_id})")
-                    return ("turbo", order_id)
-                log_event("ERROR", f"IQ Option rechazó la compra turbo: {order_id}")
+                resultado = self._llamar_con_timeout(
+                    self.api.buy, monto, par, direccion.lower(), duracion
+                )
+                if resultado and resultado[0]:
+                    log_event("INFO", f"Orden turbo ejecutada (id={resultado[1]})")
+                    return ("turbo", resultado[1])
+                log_event("ERROR", f"IQ Option rechazó la compra: {resultado}")
             except Exception as exc:
                 log_event("ERROR", f"Error ejecutando operación: {exc}")
         return None
+
+    def _llamar_con_timeout(self, func, *args, timeout: int = 12):
+        """Llama a una función de IQ Option con timeout para evitar bloqueos indefinidos."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            future = ex.submit(func, *args)
+            try:
+                return future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                log_event("ERROR", f"Timeout: IQ Option no respondió en {timeout}s")
+                return None
 
     def resultado(self, order_id: Optional[object], modo: str, confianza: float, monto: float):
         """Resuelve el resultado de una operación ya vencida.
