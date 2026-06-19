@@ -12,7 +12,7 @@ export default function ManualTrade({ par: parProp = 'EURUSD' }) {
     setCargando(direccion)
     setResultado(null)
     try {
-      const { data } = await api.post('/bot/operar-manual', { direccion, par })
+      const { data } = await api.post('/bot/operar-manual', { direccion, par }, { timeout: 20000 })
       setResultado({ ok: data.ok, mensaje: data.mensaje })
     } catch (e) {
       setResultado({ ok: false, mensaje: e.response?.data?.detail || 'Error de conexión' })

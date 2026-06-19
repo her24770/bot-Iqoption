@@ -163,27 +163,17 @@ class IQOptionService:
             return None
 
         if self.api:
-            # Intentar primero con opciones digitales (más disponibles)
-            try:
-                resultado = self._llamar_con_timeout(
-                    self.api.buy_digital_spot, par, monto, direccion.lower(), duracion
-                )
-                if resultado and resultado[0]:
-                    log_event("INFO", f"Orden digital ejecutada (id={resultado[1]})")
-                    return ("digital", resultado[1])
-                log_event("WARNING", f"Digital rechazado: {resultado}. Intentando turbo...")
-            except Exception as exc:
-                log_event("WARNING", f"Digital no disponible: {exc}. Intentando turbo...")
-
-            # Fallback a turbo/binary
             try:
                 resultado = self._llamar_con_timeout(
                     self.api.buy, monto, par, direccion.lower(), duracion
                 )
-                if resultado and resultado[0]:
-                    log_event("INFO", f"Orden turbo ejecutada (id={resultado[1]})")
-                    return ("turbo", resultado[1])
-                log_event("ERROR", f"IQ Option rechazó la compra: {resultado}")
+                if resultado is None:
+                    return None
+                ok, order_id = resultado
+                if ok:
+                    log_event("INFO", f"Orden ejecutada (id={order_id})")
+                    return order_id
+                log_event("ERROR", f"IQ Option rechazó la compra: {order_id}")
             except Exception as exc:
                 log_event("ERROR", f"Error ejecutando operación: {exc}")
         return None
@@ -206,16 +196,7 @@ class IQOptionService:
         """
         if not self.simulation and self.api and order_id is not None:
             try:
-                tipo = "turbo"
-                oid = order_id
-                if isinstance(order_id, tuple):
-                    tipo, oid = order_id
-
-                if tipo == "digital":
-                    profit = self.api.check_win_digital_v2(oid)
-                else:
-                    profit = self.api.check_win_v4(oid)
-
+                profit = self.api.check_win_v4(order_id)
                 if isinstance(profit, (tuple, list)):
                     profit = profit[-1]
                 profit = float(profit)
